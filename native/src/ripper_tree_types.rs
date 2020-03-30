@@ -1,4 +1,5 @@
 #![allow(warnings)]
+use ripper_deserialize::*;
 use serde::*;
 use serde_json::Value;
 
@@ -17,39 +18,6 @@ macro_rules! def_tag {
             where
                 D: Deserializer<'de>,
             {
-                struct TagVisitor;
-
-                impl<'de> de::Visitor<'de> for TagVisitor {
-                    type Value = ();
-
-                    fn expecting(
-                        &self,
-                        f: &mut std::fmt::Formatter<'_>,
-                    ) -> Result<(), std::fmt::Error> {
-                        write!(f, $tag)
-                    }
-
-                    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-                    where
-                        E: de::Error,
-                    {
-                        if s == $tag {
-                            #[cfg(debug_assertions)]
-                            {
-                                eprintln!("accepted at {:?} {:?}", s, $tag);
-                            }
-                            Ok(())
-                        } else {
-                            #[cfg(debug_assertions)]
-                            {
-                                eprintln!("rejectd at {:?} {:?}", s, $tag);
-                            }
-                            Err(E::custom("mismatched tag"))
-                        }
-                    }
-                }
-
-                let tag = deserializer.deserialize_str(TagVisitor)?;
                 Ok($tag_name)
             }
         }
@@ -64,83 +32,155 @@ def_tag!(undeserializable, "oiqjweoifjqwoeifjwqoiefjqwoiej");
 #[derive(Deserialize, Debug, Clone)]
 pub struct ToProc(pub undeserializable, pub Box<Expression>);
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum Expression {
+    #[tag = "undeserializable aklsdjfiowgheiohqiogehdioaj"]
     ToProc(ToProc),
+    #[tag = "class"]
     Class(Class),
+    #[tag = "if"]
     If(If),
+    #[tag = "unary"]
     Unary(Unary),
+    #[tag = "void_stmt"]
     VoidStmt(VoidStmt),
+    #[tag = "def"]
     Def(Def),
+    #[tag = "defs"]
     Defs(Defs),
+    #[tag = "vcall"]
     VCall(VCall),
+    #[tag = "@ident"]
     Ident(Ident),
+    #[tag = "params"]
     Params(Params),
+    #[tag = "method_call"]
     MethodCall(MethodCall),
-    DotCall(DotCall),
+    #[tag = "call"]
     Call(Call),
+    #[tag = "command_call"]
     CommandCall(CommandCall),
+    #[tag = "method_add_arg"]
     MethodAddArg(MethodAddArg),
+    #[tag = "@int"]
     Int(Int),
+    #[tag = "bare_assoc_hash"]
     BareAssocHash(BareAssocHash),
+    #[tag = "symbol"]
     Symbol(Symbol),
+    #[tag = "symbol_literal"]
     SymbolLiteral(SymbolLiteral),
+    #[tag = "dyna_symbol"]
     DynaSymbol(DynaSymbol),
+    #[tag = "begin"]
     Begin(Begin),
+    #[tag = "paren"]
     Paren(ParenExpr),
+    #[tag = "dot2"]
     Dot2(Dot2),
+    #[tag = "dot3"]
     Dot3(Dot3),
+    #[tag = "alias"]
     Alias(Alias),
+    #[tag = "array"]
     Array(Array),
+    #[tag = "string_literal"]
     StringLiteral(StringLiteral),
+    #[tag = "xstring_literal"]
     XStringLiteral(XStringLiteral),
+    #[tag = "var_ref"]
     VarRef(VarRef),
+    #[tag = "assign"]
     Assign(Assign),
+    #[tag = "massign"]
     MAssign(MAssign),
+    #[tag = "@const"]
     Const(Const),
+    #[tag = "command"]
     Command(Command),
+    #[tag = "const_path_ref"]
     ConstPathRef(ConstPathRef),
+    #[tag = "defined"]
     Defined(Defined),
+    #[tag = "top_const_ref"]
     TopConstRef(TopConstRef),
+    #[tag = "rescue_mod"]
     RescueMod(RescueMod),
+    #[tag = "mrhs_add_star"]
     MRHSAddStar(MRHSAddStar),
+    #[tag = "next"]
     Next(Next),
+    #[tag = "string_concat"]
     StringConcat(StringConcat),
+    #[tag = "super"]
     Super(Super),
+    #[tag = "kw"]
     Kw(Kw),
+    #[tag = "undef"]
     Undef(Undef),
+    #[tag = "binary"]
     Binary(Binary),
+    #[tag = "float"]
     Float(Float),
+    #[tag = "aref"]
     Aref(Aref),
+    #[tag = "@CHAR"]
     Char(Char),
+    #[tag = "module"]
     Module(Module),
+    #[tag = "return"]
     Return(Return),
+    #[tag = "return0"]
     Return0(Return0),
+    #[tag = "hash"]
     Hash(Hash),
+    #[tag = "regexp_literal"]
     RegexpLiteral(RegexpLiteral),
+    #[tag = "backref"]
     Backref(Backref),
+    #[tag = "yield"]
     Yield(Yield),
+    #[tag = "method_add_block"]
     MethodAddBlock(MethodAddBlock),
+    #[tag = "while"]
     While(While),
+    #[tag = "while_mod"]
     WhileMod(WhileMod),
+    #[tag = "until_mod"]
     UntilMod(UntilMod),
+    #[tag = "if_mod"]
     IfMod(IfMod),
+    #[tag = "unless_mod"]
     UnlessMod(UnlessMod),
+    #[tag = "case"]
     Case(Case),
+    #[tag = "retry"]
     Retry(Retry),
+    #[tag = "sclass"]
     SClass(SClass),
+    #[tag = "break"]
     Break(Break),
+    #[tag = "lambda"]
     StabbyLambda(StabbyLambda),
+    #[tag = "@imaginary"]
     Imaginary(Imaginary),
+    #[tag = "@rational"]
     Rational(Rational),
+    #[tag = "mlhs"]
     MLhs(MLhs),
+    #[tag = "until"]
     Until(Until),
+    #[tag = "for"]
     For(For),
+    #[tag = "if_op"]
     IfOp(IfOp),
+    #[tag = "op_assign"]
     OpAssign(OpAssign),
+    #[tag = "unless"]
     Unless(Unless),
+    #[tag = "zsuper"]
     ZSuper(ZSuper),
+    #[tag = "yield0"]
     Yield0(Yield0),
 }
 
@@ -427,9 +467,8 @@ impl Command {
     }
 }
 
-def_tag!(assign_tag, "assign");
 #[derive(Deserialize, Debug, Clone)]
-pub struct Assign(pub assign_tag, pub Assignable, pub Box<Expression>);
+pub struct Assign(pub Assignable, pub Box<Expression>);
 
 def_tag!(massign_tag, "massign");
 #[derive(Deserialize, Debug, Clone)]
@@ -442,16 +481,22 @@ pub enum IdentOrVarField {
     VarField(VarField),
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum Assignable {
+    #[tag = "var_field"]
     VarField(VarField),
+    #[tag = "const_path_field"]
     ConstPathField(ConstPathField),
+    #[tag = "rest_param"]
     RestParam(RestParam),
+    #[tag = "top_const_field"]
     TopConstField(TopConstField),
+    #[tag = "aref_field"]
     ArefField(ArefField),
+    #[tag = "field"]
     Field(Field),
     // 2.6+
+    #[tag = "@ident"]
     Ident(Ident),
 }
 
@@ -463,9 +508,8 @@ def_tag!(const_path_field_tag, "const_path_field");
 #[derive(Deserialize, Debug, Clone)]
 pub struct ConstPathField(pub const_path_field_tag, pub Box<Expression>, pub Const);
 
-def_tag!(var_field_tag, "var_field");
 #[derive(Deserialize, Debug, Clone)]
-pub struct VarField(pub var_field_tag, pub VarRefType);
+pub struct VarField(pub VarRefType);
 
 def_tag!(field_tag, "field");
 #[derive(Deserialize, Debug, Clone)]
@@ -1109,10 +1153,6 @@ pub struct BlockArg(pub blockarg_tag, pub Ident);
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LineCol(pub LineNumber, pub u64);
-
-def_tag!(dotCall, "call");
-#[derive(Deserialize, Debug, Clone)]
-pub struct DotCall(pub dotCall);
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(untagged)]

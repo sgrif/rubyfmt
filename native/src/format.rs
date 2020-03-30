@@ -434,7 +434,6 @@ pub fn use_parens_for_method_call(
     context: FormattingContext,
 ) -> bool {
     let name = match method {
-        Expression::DotCall(_) => return true,
         Expression::Ident(Ident(_, name, _)) => name,
         Expression::Const(Const(_, name, _)) => name,
         _ => panic!(
@@ -1127,7 +1126,7 @@ pub fn format_top_const_field(ps: &mut ParserState, tcf: TopConstField) {
 }
 
 pub fn format_var_field(ps: &mut ParserState, vf: VarField) {
-    let left = vf.1;
+    let left = vf.0;
     format_var_ref_type(ps, left);
 }
 
@@ -1204,8 +1203,8 @@ pub fn format_assign(ps: &mut ParserState, assign: Assign) {
     }
 
     ps.with_start_of_line(false, |ps| {
-        format_assignable(ps, assign.1);
-        let right = assign.2;
+        format_assignable(ps, assign.0);
+        let right = assign.1;
 
         ps.emit_space();
         ps.emit_op("=".to_string());

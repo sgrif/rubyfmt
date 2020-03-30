@@ -434,7 +434,7 @@ pub fn use_parens_for_method_call(
     context: FormattingContext,
 ) -> bool {
     let name = match method {
-        Expression::Ident(Ident(_, name, _)) => name,
+        Expression::Ident(Ident(name, _)) => name,
         Expression::Const(Const(_, name, _)) => name,
         _ => panic!(
             "method should always be ident or dotcall, got: {:?}",
@@ -594,7 +594,7 @@ pub fn format_ident(ps: &mut ParserState, ident: Ident) {
         ps.emit_indent();
     }
 
-    handle_string_and_linecol(ps, ident.1, ident.2);
+    handle_string_and_linecol(ps, ident.0, ident.1);
 
     if ps.at_start_of_line() {
         ps.emit_newline();
@@ -997,21 +997,21 @@ pub fn format_inner_string(ps: &mut ParserState, parts: Vec<StringContentPart>, 
         match part {
             StringContentPart::TStringContent(t) => {
                 if tipe != StringType::Heredoc {
-                    ps.on_line((t.2).0);
+                    ps.on_line((t.1).0);
                 }
-                ps.emit_string_content(t.1);
+                ps.emit_string_content(t.0);
             }
             StringContentPart::StringEmbexpr(e) => {
                 ps.emit_string_content("#{".to_string());
                 ps.with_start_of_line(false, |ps| {
-                    let expr = ((e.1).into_iter()).next().expect("should not be empty");
+                    let expr = ((e.0).into_iter()).next().expect("should not be empty");
                     format_expression(ps, expr);
                 });
                 ps.emit_string_content("}".to_string());
 
                 let on_line_skip = tipe == StringType::Heredoc
                     && match peekable.peek() {
-                        Some(StringContentPart::TStringContent(TStringContent(_, s, _))) => {
+                        Some(StringContentPart::TStringContent(TStringContent(s, ..))) => {
                             s.starts_with('\n')
                         }
                         _ => false,
@@ -1056,9 +1056,9 @@ pub fn format_heredoc_string_literal(
 }
 
 pub fn format_string_literal(ps: &mut ParserState, sl: StringLiteral) {
-    let parts = (sl.2).1;
+    let parts = (sl.1).0;
     // some(hd) if we have a heredoc
-    match sl.1 {
+    match sl.0 {
         Some(hd) => {
             format_heredoc_string_literal(ps, hd, parts);
         }
@@ -1100,9 +1100,9 @@ pub fn format_const_path_field(ps: &mut ParserState, cf: ConstPathField) {
     }
 
     ps.with_start_of_line(false, |ps| {
-        format_expression(ps, *cf.1);
+        format_expression(ps, *cf.0);
         ps.emit_colon_colon();
-        format_const(ps, cf.2);
+        format_const(ps, cf.1);
     });
 
     if ps.at_start_of_line() {
@@ -1117,7 +1117,7 @@ pub fn format_top_const_field(ps: &mut ParserState, tcf: TopConstField) {
 
     ps.with_start_of_line(false, |ps| {
         ps.emit_colon_colon();
-        format_const(ps, tcf.1);
+        format_const(ps, tcf.0);
     });
 
     if ps.at_start_of_line() {
@@ -1136,9 +1136,9 @@ pub fn format_aref_field(ps: &mut ParserState, af: ArefField) {
     }
 
     ps.with_start_of_line(false, |ps| {
-        format_expression(ps, *af.1);
+        format_expression(ps, *af.0);
         ps.emit_open_square_bracket();
-        let aab = af.2;
+        let aab = af.1;
         match aab.2 {
             ToProcExpr::Present(_) => {
                 panic!("got a to_proc in an aref_field, should be impossible");
@@ -1226,8 +1226,8 @@ pub fn format_massign(ps: &mut ParserState, massign: MAssign) {
     }
 
     ps.with_start_of_line(false, |ps| {
-        let length = massign.1.len();
-        for (idx, v) in massign.1.into_iter().enumerate() {
+        let length = massign.0.len();
+        for (idx, v) in massign.0.into_iter().enumerate() {
             format_assignable(ps, v);
             if idx != length - 1 {
                 ps.emit_comma_space();
@@ -1236,7 +1236,7 @@ pub fn format_massign(ps: &mut ParserState, massign: MAssign) {
         ps.emit_space();
         ps.emit_ident("=".to_string());
         ps.emit_space();
-        format_mrhs(ps, Some(massign.2));
+        format_mrhs(ps, Some(massign.1));
     });
 
     if ps.at_start_of_line() {
@@ -1253,7 +1253,7 @@ pub fn format_var_ref_type(ps: &mut ParserState, vr: VarRefType) {
         VarRefType::CVar(c) => handle_string_and_linecol(ps, c.1, c.2),
         VarRefType::GVar(g) => handle_string_and_linecol(ps, g.1, g.2),
         VarRefType::IVar(i) => handle_string_and_linecol(ps, i.1, i.2),
-        VarRefType::Ident(i) => handle_string_and_linecol(ps, i.1, i.2),
+        VarRefType::Ident(i) => handle_string_and_linecol(ps, i.0, i.1),
         VarRefType::Const(c) => handle_string_and_linecol(ps, c.1, c.2),
         VarRefType::Kw(kw) => handle_string_and_linecol(ps, kw.1, kw.2),
     }
@@ -1278,9 +1278,9 @@ pub fn format_const_path_ref(ps: &mut ParserState, cpr: ConstPathRef) {
     }
 
     ps.with_start_of_line(false, |ps| {
-        format_expression(ps, *cpr.1);
+        format_expression(ps, *cpr.0);
         ps.emit_colon_colon();
-        format_const(ps, cpr.2);
+        format_const(ps, cpr.1);
     });
 
     if ps.at_start_of_line() {
@@ -1295,7 +1295,7 @@ pub fn format_top_const_ref(ps: &mut ParserState, tcr: TopConstRef) {
 
     ps.with_start_of_line(false, |ps| {
         ps.emit_colon_colon();
-        format_const(ps, tcr.1);
+        format_const(ps, tcr.0);
     });
 
     if ps.at_start_of_line() {
@@ -1311,7 +1311,7 @@ pub fn format_defined(ps: &mut ParserState, defined: Defined) {
     ps.with_start_of_line(false, |ps| {
         ps.emit_ident("defined?".to_string());
         ps.emit_open_paren();
-        format_expression(ps, *defined.1);
+        format_expression(ps, *defined.0);
         ps.emit_close_paren();
     });
 
@@ -1326,11 +1326,11 @@ pub fn format_rescue_mod(ps: &mut ParserState, rescue_mod: RescueMod) {
     }
 
     ps.with_start_of_line(false, |ps| {
-        format_expression(ps, *rescue_mod.1);
+        format_expression(ps, *rescue_mod.0);
         ps.emit_space();
         ps.emit_rescue();
         ps.emit_space();
-        format_expression(ps, *rescue_mod.2);
+        format_expression(ps, *rescue_mod.1);
     });
 
     if ps.at_start_of_line() {
@@ -1339,17 +1339,17 @@ pub fn format_rescue_mod(ps: &mut ParserState, rescue_mod: RescueMod) {
 }
 
 pub fn format_mrhs_new_from_args(ps: &mut ParserState, mnfa: MRHSNewFromArgs) {
-    format_list_like_thing(ps, mnfa.1, true);
+    format_list_like_thing(ps, mnfa.0, true);
 
-    if let Some(expr) = mnfa.2 {
+    if let Some(expr) = mnfa.1 {
         ps.emit_comma_space();
         format_expression(ps, *expr);
     }
 }
 
 pub fn format_mrhs_add_star(ps: &mut ParserState, mrhs: MRHSAddStar) {
-    let first = mrhs.1;
-    let second = mrhs.2;
+    let first = mrhs.0;
+    let second = mrhs.1;
     ps.with_start_of_line(false, |ps| {
         match first {
             MRHSNewFromArgsOrEmpty::Empty(e) => {
@@ -1431,8 +1431,8 @@ pub fn format_unary(ps: &mut ParserState, unary: Unary) {
 
 pub fn format_string_concat(ps: &mut ParserState, sc: StringConcat) {
     ps.with_absorbing_indent_block(|ps| {
-        let nested = sc.1;
-        let sl = sc.2;
+        let nested = sc.0;
+        let sl = sc.1;
 
         ps.with_start_of_line(false, |ps| {
             match nested {
@@ -1474,8 +1474,8 @@ pub fn format_undef(ps: &mut ParserState, undef: Undef) {
     }
 
     ps.emit_ident("undef ".to_string());
-    let length = undef.1.len();
-    for (idx, literal) in undef.1.into_iter().enumerate() {
+    let length = undef.0.len();
+    for (idx, literal) in undef.0.into_iter().enumerate() {
         ps.with_start_of_line(false, |ps| format_symbol_literal(ps, literal));
         if idx != length - 1 {
             ps.emit_comma_space();
@@ -1562,7 +1562,7 @@ pub fn format_class(ps: &mut ParserState, class: Class) {
                 format_const_path_ref(ps, cpr);
             }
             ConstPathRefOrConstRef::ConstRef(cr) => {
-                handle_string_and_linecol(ps, (cr.1).1, (cr.1).2);
+                handle_string_and_linecol(ps, (cr.0).1, (cr.0).2);
             }
         }
 
@@ -1606,7 +1606,7 @@ pub fn format_module(ps: &mut ParserState, module: Module) {
                 format_const_path_ref(ps, cpr);
             }
             ConstPathRefOrConstRef::ConstRef(cr) => {
-                handle_string_and_linecol(ps, (cr.1).1, (cr.1).2);
+                handle_string_and_linecol(ps, (cr.0).1, (cr.0).2);
             }
         }
     });
@@ -1657,10 +1657,10 @@ pub fn format_conditional(
         Some(ElsifOrElse::Elsif(elsif)) => {
             format_conditional(
                 ps,
-                *elsif.1,
-                elsif.2,
+                *elsif.0,
+                elsif.1,
                 "elsif".to_string(),
-                (elsif.3).map(|v| *v),
+                (elsif.2).map(|v| *v),
             );
         }
         Some(ElsifOrElse::Else(els)) => {
@@ -1670,7 +1670,7 @@ pub fn format_conditional(
             ps.emit_newline();
             ps.with_start_of_line(true, |ps| {
                 ps.new_block(|ps| {
-                    for expr in els.1 {
+                    for expr in els.0 {
                         format_expression(ps, expr);
                     }
                 });
@@ -1680,7 +1680,7 @@ pub fn format_conditional(
 }
 
 pub fn format_if(ps: &mut ParserState, ifs: If) {
-    format_conditional(ps, *ifs.1, ifs.2, "if".to_string(), ifs.3);
+    format_conditional(ps, *ifs.0, ifs.1, "if".to_string(), ifs.2);
     ps.with_start_of_line(true, |ps| {
         ps.wind_line_forward();
         ps.emit_end();
@@ -1694,10 +1694,10 @@ pub fn format_if(ps: &mut ParserState, ifs: If) {
 pub fn format_unless(ps: &mut ParserState, unless: Unless) {
     format_conditional(
         ps,
-        *unless.1,
-        unless.2,
+        *unless.0,
+        unless.1,
         "unless".to_string(),
-        (unless.3).map(ElsifOrElse::Else),
+        (unless.2).map(ElsifOrElse::Else),
     );
     ps.with_start_of_line(true, |ps| {
         ps.emit_end();
@@ -2510,7 +2510,7 @@ pub fn format_expression(ps: &mut ParserState, expression: Expression) {
         Expression::Return0(r) => format_return0(ps, r),
         Expression::OpAssign(op) => format_opassign(ps, op),
         Expression::Unless(u) => format_unless(ps, u),
-        Expression::ToProc(ToProc(_, e)) => format_to_proc(ps, e),
+        Expression::ToProc(ToProc(e)) => format_to_proc(ps, e),
         Expression::ZSuper(..) => format_zsuper(ps),
         Expression::Yield0(..) => format_yield0(ps),
         Expression::Return(ret) => format_return(ps, ret),

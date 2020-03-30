@@ -28,9 +28,8 @@ def_tag!(program_tag, "program");
 #[derive(Deserialize, Debug, Clone)]
 pub struct Program(pub program_tag, pub Vec<Expression>);
 
-def_tag!(undeserializable, "oiqjweoifjqwoeifjwqoiefjqwoiej");
 #[derive(Deserialize, Debug, Clone)]
-pub struct ToProc(pub undeserializable, pub Box<Expression>);
+pub struct ToProc(pub Box<Expression>);
 
 #[derive(RipperDeserialize, Debug, Clone)]
 pub enum Expression {
@@ -231,83 +230,72 @@ impl<'de> Deserialize<'de> for MLhs {
     }
 }
 
-def_tag!(zsuper_tag, "zsuper");
 #[derive(Deserialize, Debug, Clone)]
-pub struct ZSuper((zsuper_tag,));
+pub struct ZSuper;
 
-def_tag!(yield0_tag, "yield0");
 #[derive(Deserialize, Debug, Clone)]
-pub struct Yield0((yield0_tag,));
+pub struct Yield0;
 
-def_tag!(if_tag, "if");
 #[derive(Deserialize, Debug, Clone)]
 pub struct If(
-    pub if_tag,
     pub Box<Expression>,
     pub Vec<Expression>,
     pub Option<ElsifOrElse>,
 );
 
-def_tag!(unless_tag, "unless");
 #[derive(Deserialize, Debug, Clone)]
 pub struct Unless(
-    pub unless_tag,
     pub Box<Expression>,
     pub Vec<Expression>,
     pub Option<Else>,
 );
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum ElsifOrElse {
+    #[tag = "elsif"]
     Elsif(Elsif),
+    #[tag = "else"]
     Else(Else),
 }
 
-def_tag!(elsif_tag, "elsif");
 #[derive(Deserialize, Debug, Clone)]
 pub struct Elsif(
-    pub elsif_tag,
     pub Box<Expression>,
     pub Vec<Expression>,
     pub Option<Box<ElsifOrElse>>,
 );
 
-def_tag!(else_tag, "else");
 #[derive(Deserialize, Debug, Clone)]
-pub struct Else(pub else_tag, pub Vec<Expression>);
+pub struct Else(pub Vec<Expression>);
 
-def_tag!(undef_tag, "undef");
 #[derive(Deserialize, Debug, Clone)]
-pub struct Undef(pub undef_tag, pub Vec<SymbolLiteral>);
+pub struct Undef(pub Vec<SymbolLiteral>);
 
-def_tag!(string_concat_tag, "string_concat");
 #[derive(Deserialize, Debug, Clone)]
 pub struct StringConcat(
-    pub string_concat_tag,
     pub StringConcatOrStringLiteral,
     pub StringLiteral,
 );
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum StringConcatOrStringLiteral {
+    #[tag = "string_concat"]
     StringConcat(Box<StringConcat>),
+    #[tag = "string_literal"]
     StringLiteral(StringLiteral),
 }
 
-def_tag!(mrhs_add_star_tag, "mrhs_add_star");
 #[derive(Deserialize, Debug, Clone)]
 pub struct MRHSAddStar(
-    pub mrhs_add_star_tag,
     pub MRHSNewFromArgsOrEmpty,
     pub Box<Expression>,
 );
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum MRHSNewFromArgsOrEmpty {
+    #[tag = "mrhs_new_from_args"]
     MRHSNewFromArgs(MRHSNewFromArgs),
+    #[tag = "FIXME SIAN BROKE THIS ONE"]
     Empty(Vec<Expression>),
 }
 
@@ -351,10 +339,8 @@ pub enum MRHSNewFromArgsOrEmpty {
 // [:mrhs_new_from_args, Vec<Expression>, Expression]
 //
 // so we need to implement a custom deserializer, I am sad
-def_tag!(mrhs_new_from_args_tag, "mrhs_new_from_args");
 #[derive(Debug, Clone)]
 pub struct MRHSNewFromArgs(
-    pub mrhs_new_from_args_tag,
     pub ArgsAddStarOrExpressionList,
     pub Option<Box<Expression>>,
 );
@@ -377,16 +363,6 @@ impl<'de> Deserialize<'de> for MRHSNewFromArgs {
             where
                 A: de::SeqAccess<'de>,
             {
-                let tag: &str = match seq.next_element() {
-                    Ok(Some(s)) => s,
-                    _ => {
-                        return Err(de::Error::custom("didn't get right tag"));
-                    }
-                };
-                if tag != "mrhs_new_from_args" {
-                    return Err(de::Error::custom("didn't get right tag"));
-                }
-
                 let expressions: ArgsAddStarOrExpressionList = seq
                     .next_element()?
                     .expect("didn't get args add star or expression list in mrhs new");
@@ -397,7 +373,6 @@ impl<'de> Deserialize<'de> for MRHSNewFromArgs {
                 };
 
                 Ok(MRHSNewFromArgs(
-                    mrhs_new_from_args_tag,
                     expressions,
                     tail_expression,
                 ))
@@ -408,54 +383,47 @@ impl<'de> Deserialize<'de> for MRHSNewFromArgs {
     }
 }
 
-def_tag!(rescue_mod_tag, "rescue_mod");
 #[derive(Deserialize, Debug, Clone)]
-pub struct RescueMod(pub rescue_mod_tag, pub Box<Expression>, pub Box<Expression>);
+pub struct RescueMod(pub Box<Expression>, pub Box<Expression>);
 
-def_tag!(defined_tag, "defined");
 #[derive(Deserialize, Debug, Clone)]
-pub struct Defined(pub defined_tag, pub Box<Expression>);
+pub struct Defined(pub Box<Expression>);
 
-def_tag!(top_const_ref_tag, "top_const_ref");
 #[derive(Deserialize, Debug, Clone)]
-pub struct TopConstRef(pub top_const_ref_tag, pub Const);
+pub struct TopConstRef(pub Const);
 
-def_tag!(top_const_field_tag, "top_const_field");
 #[derive(Deserialize, Debug, Clone)]
-pub struct TopConstField(pub top_const_field_tag, pub Const);
+pub struct TopConstField(pub Const);
 
-def_tag!(const_path_ref_tag, "const_path_ref");
 #[derive(Deserialize, Debug, Clone)]
-pub struct ConstPathRef(pub const_path_ref_tag, pub Box<Expression>, pub Const);
+pub struct ConstPathRef(pub Box<Expression>, pub Const);
 
-def_tag!(const_ref_tag, "const_ref");
 #[derive(Deserialize, Debug, Clone)]
-pub struct ConstRef(pub const_ref_tag, pub Const);
+pub struct ConstRef(pub Const);
 
-def_tag!(command_tag, "command");
 #[derive(Deserialize, Debug, Clone)]
 pub struct Command(
-    pub command_tag,
     pub IdentOrConst,
     pub ArgsAddBlockOrExpressionList,
 );
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum ArgsAddBlockOrExpressionList {
+    #[tag = "args_add_block"]
     ArgsAddBlock(ArgsAddBlock),
+    #[tag = "FIXME SIAN BROKE THIS ONE"]
     ExpressionList(Vec<Expression>),
 }
 
 impl Command {
     pub fn to_method_call(self) -> MethodCall {
-        let arg_node = match self.2 {
+        let arg_node = match self.1 {
             ArgsAddBlockOrExpressionList::ArgsAddBlock(n) => ArgNode::ArgsAddBlock(n),
             ArgsAddBlockOrExpressionList::ExpressionList(es) => ArgNode::Exprs(es),
         };
-        let id = match self.1 {
+        let id = match self.0 {
             IdentOrConst::Ident(i) => i,
-            IdentOrConst::Const(c) => Ident(ident_tag, c.1, c.2),
+            IdentOrConst::Const(c) => Ident(c.1, c.2),
         };
 
         MethodCall::new(
@@ -470,14 +438,14 @@ impl Command {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Assign(pub Assignable, pub Box<Expression>);
 
-def_tag!(massign_tag, "massign");
 #[derive(Deserialize, Debug, Clone)]
-pub struct MAssign(pub massign_tag, pub Vec<Assignable>, pub MRHS);
+pub struct MAssign(pub Vec<Assignable>, pub MRHS);
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum IdentOrVarField {
+    #[tag = "@ident"]
     Ident(Ident),
+    #[tag = "var_field"]
     VarField(VarField),
 }
 
@@ -500,13 +468,11 @@ pub enum Assignable {
     Ident(Ident),
 }
 
-def_tag!(aref_field_tag, "aref_field");
 #[derive(Deserialize, Debug, Clone)]
-pub struct ArefField(pub aref_field_tag, pub Box<Expression>, pub ArgsAddBlock);
+pub struct ArefField(pub Box<Expression>, pub ArgsAddBlock);
 
-def_tag!(const_path_field_tag, "const_path_field");
 #[derive(Deserialize, Debug, Clone)]
-pub struct ConstPathField(pub const_path_field_tag, pub Box<Expression>, pub Const);
+pub struct ConstPathField(pub Box<Expression>, pub Const);
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct VarField(pub VarRefType);
@@ -524,14 +490,19 @@ def_tag!(var_ref_tag, "var_ref");
 #[derive(Deserialize, Debug, Clone)]
 pub struct VarRef(pub var_ref_tag, pub VarRefType);
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum VarRefType {
+    #[tag = "@gvar"]
     GVar(GVar),
+    #[tag = "@ivar"]
     IVar(IVar),
+    #[tag = "@cvar"]
     CVar(CVar),
+    #[tag = "@ident"]
     Ident(Ident),
+    #[tag = "@const"]
     Const(Const),
+    #[tag = "@kw"]
     Kw(Kw),
 }
 
@@ -551,10 +522,8 @@ def_tag!(heredoc_string_literal_tag, "heredoc_string_literal");
 #[derive(Deserialize, Debug, Clone)]
 pub struct HeredocStringLiteral(pub heredoc_string_literal_tag, pub (String, String));
 
-def_tag!(string_literal_tag, "string_literal");
 #[derive(Debug, Clone)]
 pub struct StringLiteral(
-    pub string_literal_tag,
     pub Option<HeredocStringLiteral>,
     pub StringContent,
 );
@@ -566,10 +535,11 @@ impl<'de> Deserialize<'de> for StringLiteral {
     {
         struct StringLiteralVisitor;
 
-        #[derive(Deserialize, Debug, Clone)]
-        #[serde(untagged)]
+        #[derive(RipperDeserialize, Debug, Clone)]
         enum HeredocOrStringContent {
+            #[tag = "heredoc_string_literal"]
             Heredoc(HeredocStringLiteral),
+            #[tag = "string_content"]
             StringContent(StringContent),
         };
 
@@ -584,15 +554,6 @@ impl<'de> Deserialize<'de> for StringLiteral {
             where
                 A: de::SeqAccess<'de>,
             {
-                let tag: &str = match seq.next_element()? {
-                    Some(x) => x,
-                    None => return Err(de::Error::custom("got no tag")),
-                };
-
-                if tag != "string_literal" {
-                    return Err(de::Error::custom("didn't get right tag"));
-                }
-
                 let mut h_or_sc: Option<HeredocOrStringContent> = seq.next_element()?;
                 let h_or_sc =
                     h_or_sc.expect("didn't get either string content or heredoc in string literal");
@@ -601,10 +562,10 @@ impl<'de> Deserialize<'de> for StringLiteral {
                     HeredocOrStringContent::Heredoc(hd) => {
                         let sc: Option<StringContent> = seq.next_element()?;
                         let sc = sc.expect("didn't get string content in heredoc");
-                        StringLiteral(string_literal_tag, Some(hd), sc)
+                        StringLiteral(Some(hd), sc)
                     }
                     HeredocOrStringContent::StringContent(sc) => {
-                        StringLiteral(string_literal_tag, None, sc)
+                        StringLiteral(None, sc)
                     }
                 };
 
@@ -628,12 +589,11 @@ impl DynaSymbol {
     pub fn to_string_literal(self) -> StringLiteral {
         match self.1 {
             StringContentOrStringContentParts::StringContent(sc) => {
-                StringLiteral(string_literal_tag, None, sc)
+                StringLiteral(None, sc)
             }
             StringContentOrStringContentParts::StringContentParts(scp) => StringLiteral(
-                string_literal_tag,
                 None,
-                StringContent(string_content_tag, scp),
+                StringContent(scp),
             ),
         }
     }
@@ -646,29 +606,28 @@ pub enum StringContentOrStringContentParts {
     StringContentParts(Vec<StringContentPart>),
 }
 
-def_tag!(tstring_content_tag, "@tstring_content");
 #[derive(Deserialize, Debug, Clone)]
-pub struct TStringContent(pub tstring_content_tag, pub String, pub LineCol);
+pub struct TStringContent(pub String, pub LineCol);
 
-def_tag!(string_embexpr_tag, "string_embexpr");
 #[derive(Deserialize, Debug, Clone)]
-pub struct StringEmbexpr(pub string_embexpr_tag, pub Vec<Expression>);
+pub struct StringEmbexpr(pub Vec<Expression>);
 
 def_tag!(string_dvar_tag, "string_dvar");
 #[derive(Deserialize, Debug, Clone)]
 pub struct StringDVar(pub string_dvar_tag, pub Box<Expression>);
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(RipperDeserialize, Debug, Clone)]
 pub enum StringContentPart {
+    #[tag = "@tstring_content"]
     TStringContent(TStringContent),
+    #[tag = "string_embexpr"]
     StringEmbexpr(StringEmbexpr),
+    #[tag = "string_dvar"]
     StringDVar(StringDVar),
 }
 
-def_tag!(string_content_tag, "string_content");
 #[derive(Debug, Clone)]
-pub struct StringContent(pub string_content_tag, pub Vec<StringContentPart>);
+pub struct StringContent(pub Vec<StringContentPart>);
 
 impl<'de> Deserialize<'de> for StringContent {
     fn deserialize<D>(deserializer: D) -> Result<StringContent, D::Error>
@@ -691,14 +650,6 @@ impl<'de> Deserialize<'de> for StringContent {
             where
                 A: de::SeqAccess<'de>,
             {
-                let tag: &str = match seq.next_element()? {
-                    Some(x) => x,
-                    None => return Err(de::Error::custom("got no tag")),
-                };
-                if tag != "string_content" {
-                    return Err(de::Error::custom("didn't get right tag"));
-                }
-
                 let mut elements = vec![];
                 let mut t_or_e: Option<StringContentPart> = seq.next_element()?;
                 while t_or_e.is_some() {
@@ -706,7 +657,7 @@ impl<'de> Deserialize<'de> for StringContent {
                     t_or_e = seq.next_element()?;
                 }
 
-                Ok(StringContent(string_content_tag, elements))
+                Ok(StringContent(elements))
             }
         }
 
@@ -883,7 +834,7 @@ pub enum IdentOrOp {
 impl IdentOrOp {
     pub fn to_def_parts(self) -> (String, LineCol) {
         match self {
-            Self::Ident(Ident(_, string, linecol)) => (string, linecol),
+            Self::Ident(Ident(string, linecol)) => (string, linecol),
             Self::Op((_, string, linecol)) => (string, linecol),
         }
     }
@@ -981,16 +932,16 @@ impl Const {
     }
 }
 
-def_tag!(ident_tag, "@ident");
 #[derive(Deserialize, Debug, Clone)]
-pub struct Ident(pub ident_tag, pub String, pub LineCol);
+pub struct Ident(pub String, pub LineCol);
 
 impl Ident {
     pub fn new(s: String, l: LineCol) -> Self {
-        Ident(ident_tag, s, l)
+        Ident(s, l)
     }
+
     pub fn line_number(&self) -> LineNumber {
-        (self.2).0
+        (self.1).0
     }
 }
 
@@ -1178,7 +1129,7 @@ pub fn normalize_inner_call(call_expr: CallExpr) -> (Vec<CallChainElement>, Box<
         CallExpr::FCall(FCall(_, i)) => {
             let id = match i {
                 IdentOrConst::Ident(i) => i,
-                IdentOrConst::Const(c) => Ident(ident_tag, c.1, c.2),
+                IdentOrConst::Const(c) => Ident(c.1, c.2),
             };
             (vec![], Box::new(Expression::Ident(id)))
         }
@@ -1205,7 +1156,7 @@ pub fn normalize_args_add_block(aab: ArgsAddBlock) -> ArgsAddStarOrExpressionLis
     match aab.2 {
         ToProcExpr::NotPresent(_) => aab.1,
         ToProcExpr::Present(e) => {
-            let trailing_expr_as_vec = vec![Expression::ToProc(ToProc(undeserializable, e))];
+            let trailing_expr_as_vec = vec![Expression::ToProc(ToProc(e))];
 
             match aab.1 {
                 ArgsAddStarOrExpressionList::ExpressionList(items) => {

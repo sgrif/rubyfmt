@@ -12,7 +12,7 @@ pub fn derive_deserialize(input: TokenStream) -> TokenStream {
         .expect("`#[derive(RipperDeserialize)]` only works on enums. Use \
                 `#[derive(Serialize)]` for structs");
     let variants = item.variants.into_iter()
-        .filter_map(TaggedVariant::from_variant);
+        .map(TaggedVariant::from_variant);
     let enum_name = item.ident;
 
     let variant_arms = variants.map(|TaggedVariant { tag, ident }| {
@@ -70,22 +70,21 @@ struct TaggedVariant {
 }
 
 impl TaggedVariant {
-    fn from_variant(variant: syn::Variant) -> Option<Self> {
+    fn from_variant(variant: syn::Variant) -> Self {
         let tag = variant.attrs
             .into_iter()
-            .find(|attr| attr.path.is_ident("tag"))?
-            // .expect("All enum variants must have `#[tag=\"...\"]`")
+            .find(|attr| attr.path.is_ident("tag"))
+            .expect("All enum variants must have `#[tag=\"...\"]`")
             .parse_meta()
-            .ok()?;
-            // .expect("#[tag] must be in the form `#[tag=\"...\"]`");
+            .expect("#[tag] must be in the form `#[tag=\"...\"]`");
         let tag = match tag {
             syn::Meta::NameValue(syn::MetaNameValue { lit: syn::Lit::Str(s), .. }) => s.value(),
             _ => panic!("#[tag] must be in the form `#[tag=\"...\"]`"),
         };
 
-        Some(Self {
+        Self {
             tag,
             ident: variant.ident,
-        })
+        }
     }
 }
